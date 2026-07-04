@@ -37,3 +37,76 @@ Route::middleware('auth')->group(function () {
     Route::post('/role/set', [RoleController::class, 'setRole'])->name('role.set');
 });
 
+// ═══ BUYER ═══════════════════════════════════════════════════════════════════
+Route::middleware(['auth','role:buyer'])->prefix('buyer')->name('buyer.')->group(function () {
+    Route::get('/dashboard', function () {
+        $user   = Auth::user();
+        $wallet = $user->getOrCreateWallet();
+        $orders = \App\Models\Order::where('buyer_id', $user->id)->count();
+        return view('dashboard.buyer', compact('wallet','orders'));
+    })->name('dashboard');
+
+    Route::get('/wallet', [WalletController::class, 'index'])->name('wallet');
+    Route::post('/wallet/topup', [WalletController::class, 'topUp'])->name('wallet.topup');
+
+    Route::get('/addresses', [AddressController::class, 'index'])->name('addresses');
+    Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
+
+    Route::get('/cart', [CartController::class, 'index'])->name('cart');
+    Route::post('/cart/add', [CartController::class, 'addItem'])->name('cart.add');
+    Route::put('/cart/items/{cartItem}', [CartController::class, 'updateItem'])->name('cart.update');
+    Route::delete('/cart/items/{cartItem}', [CartController::class, 'removeItem'])->name('cart.remove');
+    Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+
+    Route::get('/orders', function () {
+        $orders = \App\Models\Order::where('buyer_id', Auth::id())
+                    ->with('store','items')->latest()->paginate(10);
+        return view('buyer.orders.index', compact('orders'));
+    })->name('orders');
+
+    Route::get('/orders/{order}', function (\App\Models\Order $order) {
+        if ($order->buyer_id !== Auth::id()) abort(403);
+        $order->load('items','address','store','statusHistories','driver');
+        return view('buyer.orders.show', compact('order'));
+    })->name('orders.show');
+});
+
+// Alias dashboard.buyer
+Route::middleware(['auth','role:buyer'])->get('/dashboard/buyer', function () {
+    return redirect()->route('buyer.dashboard');
+})->name('dashboard.buyer');
+
+// ═══ SELLER ══════════════════════════════════════════════════════════════════
+Route::middleware(['auth','role:seller'])->prefix('seller')->name('seller.')->group(function () {
+    Route::get('/dashboard', function () {
+        $store    = Auth::user()->store;
+        $products = $store ? $store->products()->count() : 0;
+        $orders   = $store ? \App\Models\Order::where('store_id',$store->id)->count() : 0;
+        $income   = $store ? \App\Models\Order::where('store_id',$store->id)->where('status','Pesanan Selesai')->sum('subtotal') : 0;
+        return view('dashboard.seller', compact('store','products','orders','income'));
+    })->name('dashboard');
+
+    Route::get('/store', [StoreController::class, 'createOrEdit'])->name('store.create');
+    Route::post('/store', [StoreController::class, 'store'])->name('store.store');
+    Route::put('/store', [StoreController::class, 'update'])->name('store.update');
+
+    Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');
+    Route::get('/products/create', [SellerProductController::class, 'create'])->name('products.create');
+    Route::post('/products', [SellerProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{product}/edit', [SellerProductController::class, 'edit'])->name('products.edit');
+    Route::put('/products/{product}', [SellerProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [SellerProductController::class, 'destroy'])->name('products.destroy');
+
+    Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders');
+    Route::post('/orders/{order}/process', [SellerOrderController::class, 'process'])->name('orders.process');
+    Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->name('orders.show');
+});
+
+Route::middleware(['auth','role:seller'])->get('/dashboard/seller', function () {
+    return redirect()->route('seller.dashboard');
+})->name('dashboard.seller');
+
