@@ -112,6 +112,10 @@ Route::middleware(['auth','role:seller'])->get('/dashboard/seller', function () 
 
 // ═══ ADMIN ═══════════════════════════════════════════════════════════════════
 Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [MonitoringController::class, 'dashboard'])->name('dashboard');
+    Route::get('/orders', [MonitoringController::class, 'orders'])->name('orders');
+    Route::get('/users', [MonitoringController::class, 'users'])->name('users');
 
     Route::get('/discounts', [DiscountController::class, 'index'])->name('discounts');
     Route::post('/vouchers', [DiscountController::class, 'storeVoucher'])->name('vouchers.store');
@@ -119,6 +123,10 @@ Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group
     Route::delete('/vouchers/{voucher}', [DiscountController::class, 'destroyVoucher'])->name('vouchers.destroy');
     Route::delete('/promos/{promo}', [DiscountController::class, 'destroyPromo'])->name('promos.destroy');
 });
+
+    Route::middleware(['auth','role:admin'])->get('/dashboard/admin', function () {
+        return redirect()->route('admin.dashboard');
+    })->name('dashboard.admin');
 
 // ═══ DRIVER ══════════════════════════════════════════════════════════════════
 Route::middleware(['auth','role:driver'])->prefix('driver')->name('driver.')->group(function () {
