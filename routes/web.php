@@ -110,3 +110,14 @@ Route::middleware(['auth','role:seller'])->get('/dashboard/seller', function () 
     return redirect()->route('seller.dashboard');
 })->name('dashboard.seller');
 
+// ═══ ADMIN ═══════════════════════════════════════════════════════════════════
+Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    Route::get('/discounts', [DiscountController::class, 'index'])->name('discounts');
+    Route::post('/vouchers', [DiscountController::class, 'storeVoucher'])->name('vouchers.store');
+    Route::post('/promos', [DiscountController::class, 'storePromo'])->name('promos.store');
+    Route::delete('/vouchers/{voucher}', [DiscountController::class, 'destroyVoucher'])->name('vouchers.destroy');
+    Route::delete('/promos/{promo}', [DiscountController::class, 'destroyPromo'])->name('promos.destroy');
+});
+
+

@@ -32,7 +32,8 @@ class CheckoutController extends Controller
         $request->validate([
             'address_id'      => 'required|exists:addresses,id',
             'delivery_method' => 'required|in:instant,nextday,regular',
-
+            'voucher_code'    => 'nullable|string|max:50',
+            'promo_code'      => 'nullable|string|max:50',
         ]);
 
         $user    = Auth::user();
@@ -55,8 +56,27 @@ class CheckoutController extends Controller
 
         $deliveryFee    = self::DELIVERY_FEES[$request->delivery_method];
         $discountAmount = 0;
+        $usedVoucher    = null;
+        $usedPromo      = null;
 
-        
+        // Validasi voucher
+        if ($request->filled('voucher_code')) {
+            $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
+            if (!$voucher) return back()->with('error', 'Kode voucher tidak ditemukan.');
+            if (!$voucher->isValid()) return back()->with('error', 'Voucher expired atau habis digunakan.');
+            $discountAmount += $voucher->calculateDiscount($subtotal);
+            $usedVoucher     = $voucher;
+        }
+
+        // Validasi promo
+        if ($request->filled('promo_code')) {
+            $promo = Promo::where('code', strtoupper(trim($request->promo_code)))->first();
+            if (!$promo) return back()->with('error', 'Kode promo tidak ditemukan.');
+            if (!$promo->isValid()) return back()->with('error', 'Promo sudah expired.');
+            $discountAmount += $promo->calculateDiscount($subtotal);
+            $usedPromo       = $promo;
+        }
+
         $discountAmount = min($discountAmount, $subtotal);
         $taxBase        = $subtotal - $discountAmount;
         $taxAmount      = round($taxBase * self::PPN, 2);
@@ -75,7 +95,7 @@ class CheckoutController extends Controller
         DB::transaction(function () use (
             $user, $cart, $address, $wallet, $store, $seller, $request,
             $subtotal, $deliveryFee, $discountAmount, $taxAmount, $totalAmount,
-            $overdueAt
+            $overdueAt, $usedVoucher, $usedPromo
         ) {
             $order = Order::create([
                 'buyer_id'        => $user->id,
@@ -89,6 +109,8 @@ class CheckoutController extends Controller
                 'tax_amount'      => $taxAmount,
                 'total_amount'    => $totalAmount,
                 'status'          => 'Sedang Dikemas',
+                'voucher_code'    => $usedVoucher?->code,
+                'promo_code'      => $usedPromo?->code,
                 'overdue_at'      => $overdueAt,
             ]);
 
@@ -106,6 +128,8 @@ class CheckoutController extends Controller
 
             $order->statusHistories()->create(['status' => 'Sedang Dikemas', 'note' => 'Pesanan dibuat.']);
             $wallet->deduct($totalAmount, 'Pembayaran Order #' . $order->id);
+
+            if ($usedVoucher) $usedVoucher->markUsed();
 
             $cart->items()->delete();
             $cart->update(['store_id' => null]);
