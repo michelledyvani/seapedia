@@ -14,8 +14,8 @@ class User extends Authenticatable
     public function userRoles()    { return $this->hasMany(UserRole::class); }
     
     public function store()        { return $this->hasOne(Store::class); }
-    //public function wallet()       { return $this->hasOne(Wallet::class); }
-    //public function addresses()    { return $this->hasMany(Address::class); }
+    public function wallet()       { return $this->hasOne(Wallet::class); }
+    public function addresses()    { return $this->hasMany(Address::class); }
     
     public function getRoleNames(): array
     {
