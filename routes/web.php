@@ -112,10 +112,10 @@ Route::middleware(['auth','role:seller'])->get('/dashboard/seller', function () 
 
 // ═══ ADMIN ═══════════════════════════════════════════════════════════════════
 Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [MonitoringController::class, 'dashboard'])->name('dashboard');
     Route::get('/orders', [MonitoringController::class, 'orders'])->name('orders');
     Route::get('/users', [MonitoringController::class, 'users'])->name('users');
+    Route::post('/simulate-next-day', [MonitoringController::class, 'simulateNextDay'])->name('simulate');
 
     Route::get('/discounts', [DiscountController::class, 'index'])->name('discounts');
     Route::post('/vouchers', [DiscountController::class, 'storeVoucher'])->name('vouchers.store');
@@ -124,9 +124,9 @@ Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group
     Route::delete('/promos/{promo}', [DiscountController::class, 'destroyPromo'])->name('promos.destroy');
 });
 
-    Route::middleware(['auth','role:admin'])->get('/dashboard/admin', function () {
-        return redirect()->route('admin.dashboard');
-    })->name('dashboard.admin');
+Route::middleware(['auth','role:admin'])->get('/dashboard/admin', function () {
+    return redirect()->route('admin.dashboard');
+})->name('dashboard.admin');
 
 // ═══ DRIVER ══════════════════════════════════════════════════════════════════
 Route::middleware(['auth','role:driver'])->prefix('driver')->name('driver.')->group(function () {
@@ -140,6 +140,3 @@ Route::middleware(['auth','role:driver'])->prefix('driver')->name('driver.')->gr
 Route::middleware(['auth','role:driver'])->get('/dashboard/driver', function () {
     return redirect()->route('driver.dashboard');
 })->name('dashboard.driver');
-
-
-

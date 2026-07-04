@@ -32,6 +32,43 @@ class MonitoringController extends Controller
         return view('admin.dashboard', compact('stats', 'recentOrders', 'overdueOrders'));
     }
 
+    public function simulateNextDay()
+    {
+        $now = Carbon::now();
+
+        $overdueOrders = Order::whereNotIn('status', ['Pesanan Selesai', 'Dikembalikan'])
+                              ->where('overdue_at', '<', $now)
+                              ->where('refunded', false)
+                              ->with('items.product', 'buyer.wallet')
+                              ->get();
+
+        $processed = 0;
+
+        foreach ($overdueOrders as $order) {
+            DB::transaction(function () use ($order) {
+                // Kembalikan saldo buyer ke ewallet 
+                $wallet = $order->buyer->getOrCreateWallet();
+                $wallet->refund($order->total_amount, 'Auto-refund Order #' . $order->id . ' (overdue)');
+
+                // Kembalikan stok produk
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $item->product->increment('stock', $item->quantity);
+                    }
+                }
+
+                // Update status order
+                $order->update(['refunded' => true]);
+                $order->updateStatus('Dikembalikan', 'Auto-refund oleh sistem karena melewati SLA.');
+            });
+
+            $processed++;
+        }
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', "Simulasi selesai. {$processed} order direfund otomatis.");
+    }
+
     public function orders()
     {
         $orders = Order::with('buyer','store','driver')->latest()->paginate(20);
