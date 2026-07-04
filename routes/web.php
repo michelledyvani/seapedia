@@ -120,4 +120,18 @@ Route::middleware(['auth','role:admin'])->prefix('admin')->name('admin.')->group
     Route::delete('/promos/{promo}', [DiscountController::class, 'destroyPromo'])->name('promos.destroy');
 });
 
+// ═══ DRIVER ══════════════════════════════════════════════════════════════════
+Route::middleware(['auth','role:driver'])->prefix('driver')->name('driver.')->group(function () {
+    Route::get('/dashboard', [JobController::class, 'dashboard'])->name('dashboard');
+    Route::get('/jobs', [JobController::class, 'index'])->name('jobs');
+    Route::get('/jobs/{order}', [JobController::class, 'show'])->name('jobs.show');
+    Route::post('/jobs/{order}/take', [JobController::class, 'take'])->name('jobs.take');
+    Route::post('/jobs/{order}/complete', [JobController::class, 'complete'])->name('jobs.complete');
+});
+
+Route::middleware(['auth','role:driver'])->get('/dashboard/driver', function () {
+    return redirect()->route('driver.dashboard');
+})->name('dashboard.driver');
+
+
 

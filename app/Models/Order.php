@@ -8,7 +8,7 @@ class Order extends Model
         'buyer_id','seller_id','store_id','address_id',
         'delivery_method','subtotal','delivery_fee','discount_amount',
         'tax_amount','total_amount','status','overdue_at','voucher_code',
-        'promo_code',
+        'promo_code','driver_id',
     ];
     protected $casts = ['overdue_at' => 'datetime', 'refunded' => 'boolean'];
 
