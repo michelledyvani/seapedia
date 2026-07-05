@@ -42,8 +42,31 @@ php artisan serve
 Buka `http://localhost:8000`
 
 ---
+## Akun Demo
+Semua password: password
+Admin: admin@seapedia.id (Akses dashboard monitoring & kelola diskon)
+Seller: seller@seapedia.id (Punya toko "Toko Elektronik Jaya")
+Seller 2: seller2@seapedia.id (Punya toko "Warung Kopi Siti")
+Buyer: buyer@seapedia.id (Saldo wallet Rp 5.000.000)
+Driver: driver@seapedia.id (Siap ambil lowongan)
+Multi-role: multi@seapedia.id (Punya 3 role: Buyer, Seller, Driver)
 
+**Membuat akun Admin baru:** Admin tidak bisa daftar sendiri lewat form register (sengaja dibatasi). Buat manual via Tinker:
 
+```bash
+php artisan tinker
+```
+```php
+$user = \App\Models\User::create([
+    'name' => 'Admin Baru',
+    'username' => 'admin2',
+    'email' => 'admin2@seapedia.id',
+    'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+]);
+\App\Models\UserRole::create(['user_id' => $user->id, 'role' => 'admin']);
+```
+
+---
 ## Single-Store Checkout Rule
 
 Karena SEAPEDIA adalah marketplace multi-seller, **satu keranjang (cart) hanya boleh berisi produk dari satu toko**.
@@ -59,16 +82,14 @@ Karena SEAPEDIA adalah marketplace multi-seller, **satu keranjang (cart) hanya b
 ## Aturan Diskon & PPN 12%
 
 ### Voucher vs Promo
+Voucher vs Promo
+Voucher: Memiliki batas pemakaian (max_usage, used_count), memiliki masa aktif (expiry date), dan tipe diskon bisa berupa persentase atau nominal tetap.
 
-| | Voucher | Promo |
-|---|---|---|
-| Batas pemakaian | Ya (`max_usage`, `used_count`) | Tidak ada batas |
-| Expiry date | Ya | Ya |
-| Tipe diskon | Persentase atau Nominal Tetap | Persentase atau Nominal Tetap |
+Promo: Tidak memiliki batas pemakaian, memiliki masa aktif (expiry date), dan tipe diskon bisa berupa persentase atau nominal tetap.
+
 
 ### Kombinasi
-
-Voucher dan Promo **bisa dikombinasikan** dalam satu checkout. Total diskon dari keduanya dijumlahkan, namun dibatasi (`min()`) agar tidak melebihi subtotal.
+Voucher dan Promo bisa dikombinasikan dalam satu checkout. Total diskon dari keduanya dijumlahkan, namun dibatasi (min()) agar tidak melebihi subtotal.
 
 ### Urutan Kalkulasi (PENTING)
 
@@ -79,25 +100,21 @@ Voucher dan Promo **bisa dikombinasikan** dalam satu checkout. Total diskon dari
 4. PPN (12%)      = Tax Base × 0.12
 5. Total          = Subtotal - Discount + PPN + Delivery Fee
 ```
-
-**PPN dihitung SETELAH diskon diterapkan, SEBELUM ongkir ditambahkan.** Ongkir tidak dikenakan PPN.
+Catatan: PPN dihitung SETELAH diskon diterapkan, SEBELUM ongkir ditambahkan. Ongkir tidak dikenakan PPN.
 
 ### Biaya Pengiriman
 
-| Metode | Biaya | SLA |
-|---|---|---|
-| Instant | Rp 25.000 | 1 hari |
-| Next Day | Rp 15.000 | 2 hari |
-| Regular | Rp 9.000 | 7 hari |
+Instant: Rp 25.000 (SLA: 1 hari)
+Next Day: Rp 15.000 (SLA: 2 hari)
+Regular: Rp 9.000 (SLA: 7 hari)
 
 ---
 
 ## Aturan Pendapatan Driver
 
-Driver mendapatkan **100% dari `delivery_fee`** order yang berhasil diselesaikan (status `Pesanan Selesai`). Tidak ada potongan platform fee untuk versi ini (didokumentasikan agar transparan terhadap evaluator).
+Driver mendapatkan 100% dari delivery_fee order yang berhasil diselesaikan (status Pesanan Selesai). Tidak ada potongan platform fee untuk versi ini (didokumentasikan agar transparan terhadap evaluator).
 
-Perhitungan total pendapatan: `SUM(delivery_fee) WHERE driver_id = X AND status = 'Pesanan Selesai'`
-
+Perhitungan total pendapatan: SUM(delivery_fee) WHERE driver_id = X AND status = 'Pesanan Selesai'
 ---
 
 ## Overdue SLA & Simulasi Waktu
